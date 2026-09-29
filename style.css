@@ -359,3 +359,5 @@ button{position:relative;overflow:hidden}
 .pv-phase .ph.active{background:var(--accent);color:var(--on-accent,#111);border-color:var(--accent)}
 .pv-bag{margin:10px 0 6px;display:flex;align-items:center;gap:8px;font-size:1rem}
 .pv-bag .pill{margin-left:auto}
+
+.warn-inline{color:#c76a00;font-weight:700}

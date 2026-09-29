@@ -759,9 +759,19 @@ function revealSet(set) {
 }
 
 /* =========================== ROLES (build / find pieces) =========================== */
-function roleTakenBy(role) { if (!state.room || state.room.mode === 'hotseat') return null; const n = Object.keys(net.peers).length; return Object.entries(net.peers).find(([id, p]) => id !== net.id && p.role === role && (role === 'build' || n <= 2)) || null; }
+// Job rule: with two people, one builds and one finds pieces; with more, any mix, but every job needs at least one person.
+const jobName = r => r === 'build' ? 'building' : 'finding pieces';
+function roleBlocked(role) {
+  if (!state.room || state.room.mode === 'hotseat') return null;
+  const others = Object.entries(net.peers).filter(([id]) => id !== net.id); if (!others.length) return null;
+  const other = role === 'build' ? 'parts' : 'build';
+  if (others.length === 1) { const o = others[0][1]; return o.role === role ? `${o.name} is already ${jobName(role)} — with two of you, one does each job` : null; }
+  const allPicked = others.every(([, p]) => p.role); const otherCovered = others.some(([, p]) => p.role === other);
+  return allPicked && !otherCovered ? `Someone has to keep ${jobName(other)} — you're the only one` : null;
+}
+function jobCounts() { const c = { build: 0, parts: 0, none: 0 }; Object.values(net.peers).forEach(p => { c[p.role === 'build' ? 'build' : p.role === 'parts' ? 'parts' : 'none']++; }); return c; }
 function setRole(role, silent) {
-  const taken = roleTakenBy(role); if (taken && !silent) { SFX.error(); toast(`${esc(taken[1].name)} already has that job — pick the other one`, '🚫'); if (!state.role || state.role === role) { const other = role === 'build' ? 'parts' : 'build'; if (!roleTakenBy(other)) return setRole(other, true); } return; }
+  const why = silent ? null : roleBlocked(role); if (why) { SFX.error(); toast(esc(why), '🚫'); const other = role === 'build' ? 'parts' : 'build'; if (state.role !== other && !roleBlocked(other)) return setRole(other, true); return; }
   state.role = role; $$('#role-switch button').forEach(b => b.classList.toggle('active', b.dataset.role === role));
   $('#parts-view').classList.toggle('hidden', role !== 'parts'); $('.viewer-wrap').classList.toggle('hidden', role === 'parts'); $('.controls').classList.toggle('hidden', role === 'parts');
   if (role === 'parts') renderPartsView(); else setTimeout(() => { if (!state.set) return; resize3d(); if (state.mode === '3d') show3dStep(state.step, false); else renderPage(); }, 50);
@@ -770,8 +780,9 @@ function setRole(role, silent) {
 }
 $$('#role-switch button').forEach(b => b.onclick = () => setRole(b.dataset.role));
 function askRole() {
-  modal(`<h3>Pick your job</h3><p class="muted">You can switch any time from the Build tab.</p><div class="role-grid"><div class="role" data-r="build"><div class="ic">🧱</div><b>Build</b><span>Follow the booklet page by page</span></div><div class="role" data-r="parts"><div class="ic">🔍</div><b>Find pieces</b><span>Sort the bricks and hand them over</span></div></div>`, []);
-  $$('#modal .role').forEach(r => { const t = roleTakenBy(r.dataset.r); if (t) { r.classList.add('taken'); r.querySelector('span').textContent = `Taken by ${t[1].name}`; } r.onclick = () => { if (t) { SFX.error(); return; } closeModal(); setRole(r.dataset.r); }; });
+  const n = Object.keys(net.peers).length;
+  modal(`<h3>Pick your job</h3><p class="muted">${n <= 2 ? 'With two builders, one builds and one finds pieces.' : 'Any mix of jobs, as long as every job has someone.'} You can switch any time from the Build tab.</p><div class="role-grid"><div class="role" data-r="build"><div class="ic">🧱</div><b>Build</b><span>Follow the steps and assemble</span></div><div class="role" data-r="parts"><div class="ic">🔍</div><b>Find pieces</b><span>Sort the bricks and hand them over</span></div></div>`, []);
+  $$('#modal .role').forEach(r => { const why = roleBlocked(r.dataset.r); if (why) { r.classList.add('taken'); r.querySelector('span').textContent = why; } r.onclick = () => { if (why) { SFX.error(); toast(esc(why), '🚫'); return; } closeModal(); setRole(r.dataset.r); }; });
 }
 function renderPartsView() {
   if (!state.set) return; const s = state.set; $('#pv-name').textContent = s.name;
@@ -1002,6 +1013,8 @@ function renderRoom() {
   } else {
     Object.entries(net.peers).forEach(([id, p]) => { const el = document.createElement('div'); el.className = 'peer'; el.innerHTML = `<div class="av" style="background:${esc(p.avatar)}">${esc((p.name || '?')[0].toUpperCase())}</div><span>${esc(p.name)}${id === net.id ? ' (you)' : ''}</span>${p.isHost ? '<span class="host">HOST</span>' : ''}${p.role === 'parts' ? '🔍' : p.role === 'build' ? '🧱' : ''}<span class="prog">${Math.round((p.progress || 0) * 100)}%</span>`; list.appendChild(el); });
     $('#peer-count').textContent = Object.keys(net.peers).length + '/' + r.max;
+    const jc = jobCounts(); const total = Object.keys(net.peers).length; const jobs = $('#job-hint');
+    if (jobs) { if (total < 2) jobs.classList.add('hidden'); else { jobs.classList.remove('hidden'); const missing = jc.none === 0 && (jc.build === 0 || jc.parts === 0); jobs.innerHTML = `Jobs: <b>${jc.build}</b> building · <b>${jc.parts}</b> finding pieces${jc.none ? ` · ${jc.none} not picked yet` : ''}${missing ? ` — <span class="warn-inline">someone should switch to ${jc.build === 0 ? 'Build' : 'Find pieces'}</span>` : ''}. ${total === 2 ? 'With two of you, one does each job.' : 'Every job needs at least one person.'}`; } }
   }
   const race = $('#race-board'); race.classList.toggle('hidden', r.mode !== 'race');
   if (r.mode === 'race') { $('#race-list').innerHTML = Object.values(net.peers).sort((a, b) => (b.progress || 0) - (a.progress || 0)).map((p, i) => `<div class="race-row"><b>${i + 1}.</b><div class="av peer" style="background:${esc(p.avatar)};padding:0;width:26px;height:26px;justify-content:center">${esc(p.name[0])}</div><span style="min-width:100px">${esc(p.name)}</span><div class="bar"><i style="width:${(p.progress || 0) * 100}%;background:${esc(p.avatar)}"></i></div>${p.finished ? '🏁' : ''}</div>`).join(''); }
