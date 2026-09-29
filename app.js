@@ -412,8 +412,8 @@ function renderStepUI() {
   }
   state.dots.forEach((d, i) => { d.className = 'step-dot' + (i < idx ? ' done' : i === idx ? ' cur' : '') + (d.dataset.nopart ? ' nopart' : '') + (state.mySteps ? (state.mySteps.includes(i) ? ' mine' : ' other') : ''); });
   if (is3d) renderStepParts();
-  const cur = state.dots[idx], aside = list.closest('.step-panel');
-  if (cur && aside && (cur.offsetTop < aside.scrollTop || cur.offsetTop > aside.scrollTop + aside.clientHeight - 40)) aside.scrollTop = cur.offsetTop - aside.clientHeight / 2;
+  const cur = state.dots[idx];
+  if (cur && (cur.offsetTop < list.scrollTop || cur.offsetTop > list.scrollTop + list.clientHeight - 40)) list.scrollTop = Math.max(0, cur.offsetTop - list.clientHeight / 2);
   if (state.role === 'parts') renderPartsView();
   const ap = $('#hud-assign'); if (state.mySteps) { ap.classList.remove('hidden'); ap.style.background = settings.avatar; ap.textContent = `Your pages: ${state.mySteps.length}`; } else ap.classList.add('hidden');
 }
@@ -662,8 +662,8 @@ function frame3d(animate = true) {
   const box = new T.Box3(); const tmp = new T.Box3(); let any = false;
   m3.parts.forEach(g => { if (!g.visible) return; tmp.setFromObject(g); if (!tmp.isEmpty()) { box.union(tmp); any = true; } });
   if (!any) return;
-  const center = box.getCenter(new T.Vector3()); const sz = box.getSize(new T.Vector3()); const radius = Math.max(24, Math.max(sz.x, sz.y, sz.z) * .58, sz.length() * .36);
-  const dist = radius / Math.sin((m3.camera.fov * Math.PI / 180) / 2) * 1.02 + 8;
+  const center = box.getCenter(new T.Vector3()); const sz = box.getSize(new T.Vector3()); const radius = Math.max(24, Math.max(sz.x, sz.y, sz.z) * .52, sz.length() * .33);
+  const dist = radius / Math.sin((m3.camera.fov * Math.PI / 180) / 2) * 1.0 + 6;
   const dir = m3.camera.position.clone().sub(m3.controls.target); if (dir.lengthSq() < 1 || m3.firstFrame) dir.set(1, .75, 1.1); dir.normalize();
   const toPos = center.clone().add(dir.multiplyScalar(dist)); const fromPos = m3.camera.position.clone(), fromT = m3.controls.target.clone();
   m3.anims = m3.anims.filter(a => !a.cam);
