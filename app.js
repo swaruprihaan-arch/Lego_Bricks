@@ -685,18 +685,20 @@ function partThumb(file, color) {
   if (!tpl) { thumbs.set(key, ''); return ''; }
   try {
     if (!m3.thumb) {
-      const canvas = document.createElement('canvas'); canvas.width = 192; canvas.height = 144;
-      const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true }); renderer.setClearColor(0xffffff, 0);
-      const scene = new T.Scene(); scene.add(new T.HemisphereLight(0xffffff, 0x8899aa, 1.2)); const d = new T.DirectionalLight(0xffffff, 1.3); d.position.set(3, 5, 4); scene.add(d);
-      const camera = new T.PerspectiveCamera(30, 192 / 144, .1, 5000); const holder = new T.Group(); holder.rotation.x = Math.PI; scene.add(holder);
+      const canvas = document.createElement('canvas'); canvas.width = 360; canvas.height = 270;
+      const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true }); renderer.setClearColor(0xf7f7f7, 1);
+      const scene = new T.Scene(); scene.add(new T.HemisphereLight(0xffffff, 0xb8c0cc, 1.7));
+      const d = new T.DirectionalLight(0xffffff, 2.0); d.position.set(2.5, 4, 3); scene.add(d); const d2 = new T.DirectionalLight(0xffffff, .8); d2.position.set(-3, 1.5, -2); scene.add(d2);
+      const camera = new T.PerspectiveCamera(26, 360 / 270, .1, 5000); const holder = new T.Group(); holder.rotation.x = Math.PI; scene.add(holder);
       m3.thumb = { renderer, scene, camera, holder };
     }
     const { renderer, scene, camera, holder } = m3.thumb; while (holder.children.length) holder.remove(holder.children[0]);
     const mat = m3.matFor ? m3.matFor(color) : null; const g = new T.Group();
-    tpl.children.forEach(o => { if (o.isMesh) { const m = new T.Mesh(o.geometry, o.userData.passthrough && mat ? mat : o.material); m.position.copy(o.position); m.quaternion.copy(o.quaternion); m.scale.copy(o.scale); g.add(m); } else if (o.isLineSegments) { const l = new T.LineSegments(o.geometry, new T.LineBasicMaterial({ color: 0x222222 })); l.position.copy(o.position); l.quaternion.copy(o.quaternion); l.scale.copy(o.scale); g.add(l); } });
+    const hexc = ((m3.colors[color] || {}).hex || '#888888'); const dark = hex2rgb(hexc).reduce((a, b) => a + b, 0) < 200;
+    tpl.children.forEach(o => { if (o.isMesh) { const m = new T.Mesh(o.geometry, o.userData.passthrough && mat ? mat : o.material); m.position.copy(o.position); m.quaternion.copy(o.quaternion); m.scale.copy(o.scale); g.add(m); } else if (o.isLineSegments) { const l = new T.LineSegments(o.geometry, new T.LineBasicMaterial({ color: dark ? 0x8a8a8a : 0x333333 })); l.position.copy(o.position); l.quaternion.copy(o.quaternion); l.scale.copy(o.scale); g.add(l); } });
     holder.add(g); holder.updateMatrixWorld(true);
-    const box = new T.Box3().setFromObject(g); const center = box.getCenter(new T.Vector3()); const size = box.getSize(new T.Vector3()); const radius = Math.max(4, size.length() / 2);
-    const dist = radius / Math.sin((camera.fov * Math.PI / 180) / 2) * 1.05; camera.position.copy(center).add(new T.Vector3(.9, .75, 1.1).normalize().multiplyScalar(dist)); camera.lookAt(center); camera.updateProjectionMatrix();
+    const box = new T.Box3().setFromObject(g); const center = box.getCenter(new T.Vector3()); const size = box.getSize(new T.Vector3()); const radius = Math.max(4, Math.max(size.x, size.y, size.z) * .56, size.length() * .36);
+    const dist = radius / Math.sin((camera.fov * Math.PI / 180) / 2) * .98; camera.position.copy(center).add(new T.Vector3(1, .8, 1.15).normalize().multiplyScalar(dist)); camera.lookAt(center); camera.updateProjectionMatrix();
     renderer.render(scene, camera); const url = renderer.domElement.toDataURL('image/png'); thumbs.set(key, url); return url;
   } catch (e) { console.warn('thumb', e); thumbs.set(key, ''); return ''; }
 }
