@@ -697,8 +697,8 @@ function partThumb(file, color) {
     const hexc = ((m3.colors[color] || {}).hex || '#888888'); const dark = hex2rgb(hexc).reduce((a, b) => a + b, 0) < 200;
     tpl.children.forEach(o => { if (o.isMesh) { const m = new T.Mesh(o.geometry, o.userData.passthrough && mat ? mat : o.material); m.position.copy(o.position); m.quaternion.copy(o.quaternion); m.scale.copy(o.scale); g.add(m); } else if (o.isLineSegments) { const l = new T.LineSegments(o.geometry, new T.LineBasicMaterial({ color: dark ? 0x8a8a8a : 0x333333 })); l.position.copy(o.position); l.quaternion.copy(o.quaternion); l.scale.copy(o.scale); g.add(l); } });
     holder.add(g); holder.updateMatrixWorld(true);
-    const box = new T.Box3().setFromObject(g); const center = box.getCenter(new T.Vector3()); const size = box.getSize(new T.Vector3()); const radius = Math.max(4, Math.max(size.x, size.y, size.z) * .56, size.length() * .36);
-    const dist = radius / Math.sin((camera.fov * Math.PI / 180) / 2) * .98; camera.position.copy(center).add(new T.Vector3(1, .8, 1.15).normalize().multiplyScalar(dist)); camera.lookAt(center); camera.updateProjectionMatrix();
+    const box = new T.Box3().setFromObject(g); const center = box.getCenter(new T.Vector3()); const size = box.getSize(new T.Vector3()); const radius = Math.max(8, Math.max(size.x, size.y, size.z) * .6, size.length() * .43);
+    const dist = radius / Math.sin((camera.fov * Math.PI / 180) / 2) * 1.14; camera.position.copy(center).add(new T.Vector3(1, .8, 1.15).normalize().multiplyScalar(dist)); camera.lookAt(center); camera.updateProjectionMatrix();
     renderer.render(scene, camera); const url = renderer.domElement.toDataURL('image/png'); thumbs.set(key, url); return url;
   } catch (e) { console.warn('thumb', e); thumbs.set(key, ''); return ''; }
 }
@@ -1021,7 +1021,7 @@ function initSettings() {
 /* =========================== SEARCH / BOOT =========================== */
 $('#search-form').onsubmit = e => { e.preventDefault(); loadSet($('#search-input').value); };
 $$('.chip').forEach(c => c.onclick = () => loadSet(c.dataset.set));
-window.loadSet = loadSet; window.showStep = showStep; window.setMode = setMode; window.m3 = m3; window.buildModel = buildModel; window.setRole = setRole;
+window.loadSet = loadSet; window.showStep = showStep; window.setMode = setMode; window.m3 = m3; window.buildModel = buildModel; window.setRole = setRole; window.partThumb = partThumb;
 
 initSettings(); applyTheme(); renderCollection(); initFeatured();
 initHero().catch(e => { console.warn('3D hero unavailable (no WebGL or CDN blocked) — hiding it', e); $('.hero-3d').classList.add('hidden'); });
