@@ -778,6 +778,7 @@ function renderPartsView() {
   const grid = $('#pv-grid'), msg = $('#pv-msg');
   $('#pv-ahead').classList.toggle('hidden', !(state.mode === '3d' && m3.loaded && m3.url === s.model));
   if (state.mode === '3d' && m3.loaded && m3.url === s.model) { renderStepPieces(grid, msg); return; }
+  $('#pv-phase').classList.add('hidden'); $('#pv-intro').textContent = 'Sort the pieces by colour and tap each kind once it\'s in its pile.'; $('#pv-ready').textContent = 'All pieces sorted ✓';
   if (!state.parts) {
     grid.innerHTML = ''; $('#pv-count').textContent = ''; msg.classList.remove('hidden');
     msg.innerHTML = state.partsLoading ? 'Loading the piece list from Rebrickable…' : rbKey() ? 'Couldn\'t load the piece list from Rebrickable for this set. The last pages of the booklet list every piece.' : 'Add a free Rebrickable API key in <a href="#" onclick="document.querySelector(\'[data-tab=settings]\').click();return false">Settings</a> to see every piece in this set here. The last pages of the booklet list them too.';
@@ -790,8 +791,21 @@ function renderPartsView() {
   grid.innerHTML = parts.map((p, i) => { const k = p.num + '|' + p.color; return `<div class="pv-card ${got[k] ? 'got' : ''}" data-k="${esc(k)}" style="animation-delay:${Math.min(i, 40) * 15}ms"><div class="pic-wrap"><div class="sw" style="background:${esc(p.color)}"></div>${p.img ? `<img class="photo" src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div><div class="q">×${p.qty}</div><div class="n">${esc(p.name)}</div><div class="cn">${esc(p.colorName)}</div></div>`; }).join('');
   $$('.pv-card').forEach(c => c.onclick = () => { got[c.dataset.k] = !got[c.dataset.k]; c.classList.toggle('got', !!got[c.dataset.k]); SFX.snap(); count(); });
 }
-// 3D mode: pieces for the current step plus the next 1-3 steps, so a helper can sort ahead of the builder
+// Find pieces has two phases per set: 1) sort ALL the pieces (whole inventory, by bag), 2) get & give the pieces for the
+// current step plus the next 1-3 steps to the builder(s).
+const pvPhases = LS('pvphase', {});
+const pvPhase = () => (state.set && pvPhases[state.set.num]) || 'sort';
+function setPvPhase(ph) { if (!state.set) return; pvPhases[state.set.num] = ph; try { SAVE('pvphase', pvPhases); } catch { } renderPartsView(); }
+$$('#pv-phase .ph').forEach(el => el.onclick = () => setPvPhase(el.dataset.ph));
+function fillThumbs(root) { // fill piece pictures a few per frame so long lists never freeze the page
+  const imgs = [...root.querySelectorAll('img[data-thumb]')]; let i = 0;
+  const tick = () => { const end = Math.min(imgs.length, i + 12); for (; i < end; i++) { const im = imgs[i]; const [f, c] = im.dataset.thumb.split('|'); const u = partThumb(f, +c); if (u) im.src = u; else im.remove(); im.removeAttribute('data-thumb'); } if (i < imgs.length && root.isConnected) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
 function renderStepPieces(grid, msg) {
+  $('#pv-phase').classList.remove('hidden'); $$('#pv-phase .ph').forEach(el => el.classList.toggle('active', el.dataset.ph === pvPhase()));
+  if (pvPhase() === 'sort') return renderSortAll(grid, msg);
+  $('#pv-ahead').classList.remove('hidden'); $('#pv-intro').textContent = 'Get these pieces and give them to the builder(s). Tap each kind once it\'s handed over; use Look ahead to prepare the next steps.'; $('#pv-ready').textContent = 'Handed over ✓';
   const ahead = settings.pvAhead || 2; const first = state.step, last = Math.min(state.steps.length - 1, state.step + ahead);
   msg.classList.add('hidden'); const got = state.gotParts[state.set.num] || (state.gotParts[state.set.num] = {});
   let html = '', total = 0, done = 0;
@@ -801,14 +815,32 @@ function renderStepPieces(grid, msg) {
     html += `<div class="pv-step"><div class="pv-step-head"><b>Step ${i + 1}</b>${i === first ? '<span class="pill">now</span>' : ''}${st.bag ? `<span class="muted small">bag ${st.bag}</span>` : ''}</div>`;
     if (!items.length) html += '<div class="hint">No new pieces in this step.</div>';
     html += '<div class="pv-grid">' + items.map((g, j) => { const k = 's' + i + '|' + g.file + '|' + g.color; if (got[k]) done++; const c = m3.colors[g.color] || { name: 'Colour ' + g.color, hex: '#9a9a9a' }; const num = g.file.replace(/\.dat$/, ''); const rbp = rbPart(num, c.hex); const name = (m3.names[g.file] || num).replace(/^[~_=]+/, '');
-      const th = partThumb(g.file, g.color);
-      return `<div class="pv-card ${got[k] ? 'got' : ''}" data-k="${esc(k)}" style="animation-delay:${Math.min(j, 20) * 20}ms"><div class="pic-wrap"><div class="sw" style="background:${c.hex}"></div>${th ? `<img class="photo" src="${th}" alt="">` : rbp && rbp.img ? `<img class="photo" src="${esc(rbp.img)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div><div class="q">×${g.q}</div><div class="n">${esc(name)}</div><div class="cn">${esc(c.name)} · ${esc(num)}</div></div>`; }).join('') + '</div></div>';
+      return `<div class="pv-card ${got[k] ? 'got' : ''}" data-k="${esc(k)}" style="animation-delay:${Math.min(j, 20) * 20}ms"><div class="pic-wrap"><div class="sw" style="background:${c.hex}"></div><img class="photo" data-thumb="${esc(g.file)}|${g.color}" alt=""></div><div class="q">×${g.q}</div><div class="n">${esc(name)}</div><div class="cn">${esc(c.name)} · ${esc(num)}</div></div>`; }).join('') + '</div></div>';
   }
-  grid.innerHTML = html; $('#pv-count').textContent = `${done} / ${total} kinds · steps ${first + 1}–${last + 1}`;
+  grid.innerHTML = html; fillThumbs(grid); $('#pv-count').textContent = `${done} / ${total} kinds · steps ${first + 1}–${last + 1}`;
   $$('#pv-grid .pv-card').forEach(c => c.onclick = () => { got[c.dataset.k] = !got[c.dataset.k]; c.classList.toggle('got', !!got[c.dataset.k]); SFX.snap(); const d = $$('#pv-grid .pv-card.got').length; $('#pv-count').textContent = `${d} / ${total} kinds · steps ${first + 1}–${last + 1}`; });
 }
+function renderSortAll(grid, msg) {
+  $('#pv-ahead').classList.add('hidden'); msg.classList.add('hidden');
+  $('#pv-intro').textContent = 'Empty the bags and sort ALL the pieces into piles by shape and colour. Tap each kind when its pile is ready, then start handing pieces to the builder(s).';
+  $('#pv-ready').textContent = 'All pieces sorted → start handing out';
+  const got = state.gotParts[state.set.num] || (state.gotParts[state.set.num] = {}); const kinds = {};
+  m3.steps.forEach(st => st.parts.forEach(p => { const k = p.file + '|' + p.color; const e = kinds[k] || (kinds[k] = { ...p, q: 0, bag: st.bag || 0 }); e.q++; }));
+  const list = Object.values(kinds); const byBag = {}; list.forEach(e => (byBag[e.bag] = byBag[e.bag] || []).push(e));
+  const bags = Object.keys(byBag).map(Number).sort((a, b) => a - b); const total = list.length; let done = 0; let html = '';
+  bags.forEach(bag => {
+    const items = byBag[bag].sort((a, b) => a.color - b.color || a.file.localeCompare(b.file)); const pieces = items.reduce((a, e) => a + e.q, 0);
+    html += `<div class="pv-step"><div class="pv-bag"><b>${bag ? 'Bag ' + bag : 'All pieces'}</b><span class="muted small">${items.length} kinds · ${pieces} pieces</span></div><div class="pv-grid">` + items.map((g, j) => {
+      const k = 'all|' + g.file + '|' + g.color; if (got[k]) done++; const c = m3.colors[g.color] || { name: 'Colour ' + g.color, hex: '#9a9a9a' }; const num = g.file.replace(/\.dat$/, ''); const name = (m3.names[g.file] || num).replace(/^[~_=]+/, '');
+      return `<div class="pv-card ${got[k] ? 'got' : ''}" data-k="${esc(k)}"><div class="pic-wrap"><div class="sw" style="background:${c.hex}"></div><img class="photo" data-thumb="${esc(g.file)}|${g.color}" alt=""></div><div class="q">×${g.q}</div><div class="n">${esc(name)}</div><div class="cn">${esc(c.name)} · ${esc(num)}</div></div>`; }).join('') + '</div></div>';
+  });
+  grid.innerHTML = html; fillThumbs(grid);
+  const count = () => { const d = $$('#pv-grid .pv-card.got').length; $('#pv-count').textContent = `${d} / ${total} kinds sorted · ${list.reduce((a, e) => a + e.q, 0).toLocaleString()} pieces`; }; count();
+  $$('#pv-grid .pv-card').forEach(c => c.onclick = () => { got[c.dataset.k] = !got[c.dataset.k]; c.classList.toggle('got', !!got[c.dataset.k]); SFX.snap(); count(); });
+}
 $$('#pv-ahead button').forEach(b => b.onclick = () => { settings.pvAhead = +b.dataset.n; saveSettings(); $$('#pv-ahead button').forEach(x => x.classList.toggle('active', x === b)); renderPartsView(); });
-$('#pv-ready').onclick = () => { if (state.mode === '3d' && m3.loaded) { const got = state.gotParts[state.set.num] || (state.gotParts[state.set.num] = {}); $$('#pv-grid .pv-card').forEach(c => got[c.dataset.k] = true); renderPartsView(); SFX.step(); toast('Pieces sorted for the next steps', '✅'); if (state.room) net.broadcast({ t: 'ready', who: net.id, name: settings.name }); return; } if (!state.parts) { toast('No piece list to tick off', '🔍'); return; } const got = state.gotParts[state.set.num] || (state.gotParts[state.set.num] = {}); state.parts.forEach(p => got[p.num + '|' + p.color] = true); renderPartsView(); SFX.step(); toast('All pieces sorted', '✅'); if (state.room) net.broadcast({ t: 'ready', who: net.id, name: settings.name }); };
+$('#pv-ready').onclick = () => { if (state.mode === '3d' && m3.loaded && pvPhase() === 'sort') { const got = state.gotParts[state.set.num] || (state.gotParts[state.set.num] = {}); $$('#pv-grid .pv-card').forEach(c => got[c.dataset.k] = true); setPvPhase('give'); SFX.fanfare(); confetti(40); toast('Sorted! Now hand the pieces to the builder(s), step by step', '🧱'); if (state.room) net.broadcast({ t: 'ready', who: net.id, name: settings.name }); return; }
+  if (state.mode === '3d' && m3.loaded) { const got = state.gotParts[state.set.num] || (state.gotParts[state.set.num] = {}); $$('#pv-grid .pv-card').forEach(c => got[c.dataset.k] = true); renderPartsView(); SFX.step(); toast('Pieces sorted for the next steps', '✅'); if (state.room) net.broadcast({ t: 'ready', who: net.id, name: settings.name }); return; } if (!state.parts) { toast('No piece list to tick off', '🔍'); return; } const got = state.gotParts[state.set.num] || (state.gotParts[state.set.num] = {}); state.parts.forEach(p => got[p.num + '|' + p.color] = true); renderPartsView(); SFX.step(); toast('All pieces sorted', '✅'); if (state.room) net.broadcast({ t: 'ready', who: net.id, name: settings.name }); };
 
 /* =========================== COLLECTION =========================== */
 function addToCollection(status = 'building') {

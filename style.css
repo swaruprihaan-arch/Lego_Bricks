@@ -352,3 +352,10 @@ button{position:relative;overflow:hidden}
 #pv-grid>.pv-step>.pv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
 #pv-grid{display:block}
 #pv-grid:has(> .pv-card){display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+
+/* find pieces: phases */
+.pv-phase{display:flex;gap:8px;flex-wrap:wrap}
+.pv-phase .ph{padding:8px 14px;border-radius:999px;background:var(--bg-3);border:1px solid var(--border);font-weight:700;font-size:.9rem;color:var(--muted);cursor:pointer}
+.pv-phase .ph.active{background:var(--accent);color:var(--on-accent,#111);border-color:var(--accent)}
+.pv-bag{margin:10px 0 6px;display:flex;align-items:center;gap:8px;font-size:1rem}
+.pv-bag .pill{margin-left:auto}

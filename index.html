@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bricks A'Hoy — Official LEGO Instructions</title>
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=15">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -122,7 +122,8 @@
 
       <div id="parts-view" class="hidden">
         <div class="pv-head"><div><div class="muted small">Pieces in</div><h2 id="pv-name"></h2></div><span class="pill" id="pv-count"></span></div>
-        <p class="muted small">Sort the pieces by colour and tap each kind once it's in its pile. Then hand them to the builder as the steps call for them.</p>
+        <div id="pv-phase" class="pv-phase hidden"><span class="ph active" data-ph="sort">1 · Sort all the pieces</span><span class="ph" data-ph="give">2 · Get &amp; give pieces to the builder</span></div>
+        <p id="pv-intro" class="muted small">Sort the pieces by colour and tap each kind once it's in its pile.</p>
         <div id="pv-ahead" class="pv-ahead hidden"><span class="muted small">Look ahead</span><div class="seg"><button data-n="1">1 step</button><button data-n="2" class="active">2 steps</button><button data-n="3">3 steps</button></div></div>
         <p id="pv-msg" class="hint hidden"></p>
         <div class="pv-grid" id="pv-grid"></div>
@@ -304,6 +305,6 @@
 <div id="modal" class="modal hidden"><div class="modal-box" id="modal-box"></div></div>
 
 <script src="sets.js?v=7"></script>
-<script src="app.js?v=38"></script>
+<script src="app.js?v=39"></script>
 </body>
 </html>
