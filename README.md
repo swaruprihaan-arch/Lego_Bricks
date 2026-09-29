@@ -38,7 +38,7 @@ for other domains. `proxy/cloudflare-worker.js` is a ready-made Cloudflare Worke
 The worker only forwards requests to `www.lego.com/api/graphql` and `www.lego.com/cdn/product-assets/…`,
 and it passes `Range` headers through, so large booklets load page by page instead of all at once.
 
-## 3D build mode (42171, 42143, 21318)
+## 3D build mode (42171, 42143, 21318, 31203)
 
 Sets that have a step-by-step 3D model get a **3D build** mode next to the booklet: every official step shows the
 pieces snapping into place (highlighted orange), with a parts list for the step, bag markers with a "new bag"
@@ -52,7 +52,8 @@ it needs. 42143 (Ferrari Daytona SP3) is Jens Brühl's OMR-style model from the 
 is the LDraw.org Official Model Repository file; both were flattened from nested sub-assemblies into one linear step
 list and self-contained the same way. The `*.bin.js` files are the same data wrapped for `file://` pages, where
 browsers block `fetch`. Piece pictures in the step panel and the Find-pieces helper are rendered from the model itself.
-10300, 75192, 31203 and 31215 have no usable step-by-step 3D model yet, so they open in booklet mode.
+31203 (World Map) uses the LDraw.org OMR file with its 10,000+ tiles drawn as instanced meshes per section.
+10300, 75192 and 31215 have no usable step-by-step 3D model yet, so they open in booklet mode.
 To add a set: point `model` in `sets.js` at a `.bin` (baked) or `.mpd` (parsed at runtime with three.js's
 `LDrawLoader`, slow for big sets) and add `modelSteps` and `modelCredit`.
 
@@ -80,3 +81,10 @@ POST https://www.lego.com/api/graphql
 `sets.js` holds that same data, pre-fetched, for the showcase sets. Page counts come from each PDF.
 
 LEGO® is a trademark of the LEGO Group, which does not sponsor or endorse this project. Instructions © The LEGO Group.
+
+## License
+The site's code is MIT licensed (see `LICENSE`). Third-party content is not covered by it:
+- Building instructions are © The LEGO Group and are streamed from LEGO.com, never stored in this repo.
+- 3D models: 42171 by MING YING CAI (shared on the LDraw.org forums), 42143 by Jens Brühl (LDraw.org forums,
+  CCAL 2.0), 21318 and 31203 from the LDraw.org Official Model Repository (CCAL 2.0). LDraw parts are
+  © LDraw.org contributors (CC BY 4.0). LEGO® is a trademark of the LEGO Group, which does not sponsor or endorse this project.

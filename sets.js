@@ -27,8 +27,11 @@
     }),
     '31215': set('31215', 'Vincent van Gogh – Sunflowers', '2025', 'LEGO® Art', 2615, '18+', 'png',
       [booklet('6568340', 149366054, 312)]),
-    '31203': set('31203', 'World Map', '2021', 'LEGO® Art', 11695, '18+', 'jpg',
-      [booklet('6372756', 70930028, 160)]),
+    '31203': Object.assign(set('31203', 'World Map', '2021', 'LEGO® Art', 11695, '18+', 'jpg',
+      [booklet('6372756', 70930028, 160)]), {
+      model: 'model 31203/31203.bin', modelSteps: 20,
+      modelCredit: { author: 'LDraw.org Official Model Repository', source: 'library.ldraw.org/omr (31203-1.mpd)', url: 'https://library.ldraw.org/omr/sets/1385' }
+    }),
     '10300': set('10300', 'Back to the Future Time Machine', '2022', 'LEGO® Icons', 1872, '18+', 'png',
       [booklet('6413319', 134593434, 300)]),
     '75192': set('75192', 'Millennium Falcon™', '2017', 'LEGO® Star Wars™', 7541, '16+', 'jpg',

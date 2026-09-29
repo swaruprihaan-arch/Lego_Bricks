@@ -570,6 +570,10 @@ function buildBaked(data) {
     m.g.forEach(([gi, mk]) => g.add(new T.Mesh(geoms[gi], mats[mk]))); (m.l || []).forEach(([gi, hex]) => g.add(new T.LineSegments(geoms[gi], lineMat(hex))));
     model.add(g); parts.push(g);
   });
+  (header.instanced || []).forEach(e => {
+    const im = new T.InstancedMesh(geoms[e.g], mats[e.k], e.n); e.m.forEach((arr, i) => { mtx.fromArray(arr); im.setMatrixAt(i, mtx); }); im.instanceMatrix.needsUpdate = true; im.computeBoundingBox();
+    const g = new T.Group(); g.name = 'instanced-' + e.s; g.userData.step = e.s; g.userData.merged = true; g.userData.home = g.position.clone(); g.add(im); model.add(g); parts.push(g);
+  });
   m3.matFor = c => { const hex = baseHex(c) || '#9a9a9a'; const k = Object.keys(header.mats).find(k => header.mats[k].hex.toLowerCase() === hex && header.mats[k].opacity >= 1) || Object.keys(header.mats).find(k => header.mats[k].hex.toLowerCase() === hex); return k ? mats[k] : new T.MeshStandardMaterial({ color: new T.Color(hex), roughness: .7 }); };
   const steps = header.steps.map(st => ({ bag: st.bag, parts: [] })); header.placements.forEach(p => { if (steps[p.s]) steps[p.s].parts.push({ file: p.f, color: p.c }); });
   return { model, parts, steps, names: header.names, colors: header.colors };
